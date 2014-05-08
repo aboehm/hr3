@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -28,6 +29,10 @@ public abstract class Mapping {
 //		else
 //			add(label2, label1, sim);
     }
+
+    public abstract void merge(Mapping m);
+
+    public abstract Map getMap();
 
     public static final class DiskMapping extends Mapping {
 
@@ -54,6 +59,15 @@ public abstract class Mapping {
 
             csvWriter.writeNext(outputArray);
         }
+
+	@Override
+	public void merge(Mapping m) {
+	}
+
+	@Override
+	public Map getMap() {
+		return null;
+	}
 
         @Override
         public void close() throws IOException {
@@ -100,5 +114,15 @@ public abstract class Mapping {
         public int size() throws IOException {
             return size;
         }
+
+	@Override
+	public void merge(Mapping m) {
+	}
+
+	@Override
+	public Map getMap() {
+		return null;
+	}
+
     }
 }
