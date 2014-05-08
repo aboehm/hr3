@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -60,5 +61,14 @@ public class DiskMapping extends Mapping
 			cnt++;
 		
 		return cnt;
+	}
+
+	@Override
+	public void merge(Mapping map) {
+	}
+
+	@Override
+	public Map getMap() {
+		return null;
 	}
 }
