@@ -9,8 +9,8 @@
 <property name="doc.dir" value="doc" />
 <property name="src.dir" value="src" />
 <property name="manifest" value="manifest" />
-<property name="classes.main" value="de.uni_leipzig.simba.hr3.HR3Starter" />
-<!--<property name="classes.main" value="HR3Starter" />-->
+<property name="main.package" value="de.uni_leipzig.simba.hr3" />
+<property name="main.class" value="${main.package}.HR3Starter" />
 
 <path id="java.class.path">
 	<pathelement path="${classes.dir}" />
@@ -35,14 +35,30 @@
 	<jar jarfile="${jar.dir}/${ant.project.name}.jar">
 		<fileset dir="${classes.dir}"/>
 		<manifest>
-			<attribute name="Main-Class" value="${classes.main}"/>
+			<attribute name="Main-Class" value="${main.class}"/>
 		</manifest>
 	</jar>
 
 </target>
 
-<target name="run" depends="jar">
-	<java classname="${classes.main}" fork="true" classpathref="java.class.path" /> 
+<target name="run" depends="compile">
+	<java classname="${main.class}" fork="true" classpathref="java.class.path" /> 
+</target>
+
+<target name="run-default" depends="compile">
+	<java classname="${main.class}" fork="true" classpathref="java.class.path">
+		<arg value="--random" />
+		<arg value="--threads" />
+		<arg value="4" />
+	</java> 
+</target>
+
+<target name="run-threaded" depends="compile">
+	<java classname="${main.package}.HR3Threaded" fork="true" classpathref="java.class.path">
+		<arg value="--random" />
+		<arg value="--threads" />
+		<arg value="4" />
+	</java> 
 </target>
 
 <target name="runjar" depends="jar">
