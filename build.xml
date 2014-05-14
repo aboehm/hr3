@@ -37,6 +37,7 @@
 		<manifest>
 			<attribute name="Main-Class" value="${main.class}"/>
 		</manifest>
+		<fileset dir="${lib.dir}" includes="**/*.class" />
 	</jar>
 
 </target>
