@@ -397,17 +397,19 @@ public class Util {
 
                 //input
                 addOptionGroup(new OptionGroup() {
-
                     {
-
-                        addOption(OptionBuilder.withLongOpt("random").withDescription("run HR3 with a non-skewed dataset").create());
-
                         addOption(OptionBuilder.withLongOpt("skewed").withDescription("run HR3 with a skewed dataset").create());
 
                         addOption(OptionBuilder.withLongOpt("dataset").withDescription("run HR3 for a dataset specified by csv files").hasArgs(2).withArgName("source [target]").create());
                     }
                 });
 
+                addOption(OptionBuilder.withLongOpt("random").withDescription("run HR3 with a non-skewed dataset").create());
+
+                addOption(OptionBuilder.withLongOpt("random-dimensions").withDescription("run HR3 with a non-skewed dataset").hasArgs().withArgName("dim").create());
+                addOption(OptionBuilder.withLongOpt("random-range-begin").withDescription("min. limit of values").hasArgs().withArgName("min").create());
+                addOption(OptionBuilder.withLongOpt("random-range-end").withDescription("max. limit of values").hasArgs().withArgName("max").create());
+                addOption(OptionBuilder.withLongOpt("random-points").withDescription("number of points to create").hasArgs().withArgName("points").create());
 
                 //plot input
                 addOption(OptionBuilder.withLongOpt("chart").withDescription("plot the data distribution").create());
@@ -421,11 +423,10 @@ public class Util {
                 addOption(OptionBuilder.withLongOpt("write-csv").withDescription("write to CSV (instead of tab separated) files").create());
 
 
+
                 //output
                 addOptionGroup(new OptionGroup() {
-
                     {
-
                         addOption(OptionBuilder.withLongOpt("output").withDescription("output the generated dataset and the the computed mapping to disk").hasArg().withArgName("directory").create());
 
                         addOption(OptionBuilder.withLongOpt("memory").withDescription("hold the computed mapping in memory").create());
@@ -445,8 +446,22 @@ public class Util {
                 addOption(OptionBuilder.withLongOpt("granularity").withDescription("set degree the space tiling (\u03B1)").hasArg().withArgName("value").create());
 
 
-                //threaded
-                addOption(OptionBuilder.withLongOpt("threads").withDescription("run HR3 using multiple threads").hasArg().withArgName("num threads").create());
+		// parallelization options
+		
+		// number of threads
+		addOption(OptionBuilder.withLongOpt("threads").withDescription("run HR3 using multiple threads").hasArg().withArgName("num threads").create());
+
+		// extreme pool
+		addOption(OptionBuilder.withLongOpt("extremepool").withDescription("run point comparsion in threads").create());
+
+		// extreme pool threshold
+		addOption(OptionBuilder.withLongOpt("extremepoolthreshold").withDescription("threshold of number of points in comparsion, when a new thread is created").hasArg().withArgName("points").create());
+
+		// map merge
+		addOption(OptionBuilder.withLongOpt("mapmerge").withDescription("use merging algorithm for mapping").create());
+
+		addOption(OptionBuilder.withLongOpt("benchmark").withDescription("give statistiscs of execution time as CSV").create());
+		addOption(OptionBuilder.withLongOpt("benchmark-header").withDescription("display table head as CSV").create());
             }
         };
 
@@ -472,11 +487,61 @@ public class Util {
         config.readCSV = line.hasOption("read-csv");
         config.writeCSV = line.hasOption("write-csv");
 
+	// benchmark
+	config.benchmark = line.hasOption("benchmark");
+	config.benchmarkHeader = line.hasOption("benchmark-header");
 
         //input
+
+	if (line.hasOption("random-dimensions")) {
+            try {
+                config.randomDimensions = Integer.parseInt(line.getOptionValue("random-dimensions"));
+                if (config.randomDimensions < 1) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("dimension have to be greater than 0");
+                formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
+                System.exit(1);
+            }
+	}
+
+	if (line.hasOption("random-points")) {
+            try {
+                config.randomPoints = Integer.parseInt(line.getOptionValue("random-points"));
+                if (config.randomPoints < 1) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("there must be at least one point");
+                formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
+                System.exit(1);
+            }
+	}
+
+	if (line.hasOption("random-range-begin")) {
+            try {
+                config.randomRangeBegin = Float.parseFloat(line.getOptionValue("random-range-begin"));
+            } catch (NumberFormatException e) {
+                //System.err.println("dimension have to be greater than 0");
+                formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
+                System.exit(1);
+            }
+	}
+
+	if (line.hasOption("random-range-end")) {
+            try {
+                config.randomRangeBegin = Float.parseFloat(line.getOptionValue("random-range-end"));
+            } catch (NumberFormatException e) {
+                //System.err.println("dimension have to be greater than 0");
+                formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
+                System.exit(1);
+            }
+	}
+
         if (line.hasOption("random") || !line.hasOption("skewed") && !line.hasOption("dataset")) {
-            config.source = generateData(-180, 180, 2, 1000000);
-            config.target = generateData(-180, 180, 2, 1000000);
+            config.source = generateData(config.randomRangeBegin, config.randomRangeEnd, config.randomDimensions, config.randomPoints);
+            config.target = generateData(config.randomRangeBegin, config.randomRangeEnd, config.randomDimensions, config.randomPoints);
         } else if (line.hasOption("skewed")) {
             config.source = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
             config.target = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
@@ -506,7 +571,6 @@ public class Util {
         //output
         if (line.hasOption("memory")) {
             config.mapping = new MainMemoryMapping();
-            System.out.println("==============\nCollecting correspondences in memory");
         } else if (line.hasOption("output")) {
             String dirName = line.getOptionValue("output");
             File f = new File(dirName);
@@ -524,10 +588,8 @@ public class Util {
             }
 
             config.mapping = new DiskMapping(new File(dirName, "HR3_mapping" + (config.writeCSV ? ".csv" : ".txt")), config.writeCSV);
-            System.out.println("==============\nWrite mapping to file");
         } else {
             config.mapping = new NoOpMapping();
-            System.out.println("==============\nDrop correspondences");
         }
 
 
@@ -578,7 +640,11 @@ public class Util {
         }
 
 
-        //threads
+        // 
+	// parallelization options
+	//
+	
+	// threads
         if (line.hasOption("threads")) {
             try {
                 config.numThreads = Integer.parseInt(line.getOptionValue("threads"));
@@ -592,7 +658,25 @@ public class Util {
             }
         }
 
+	// extreme pool
+	config.extremepool = line.hasOption("extremepool");
 
+	// extreme pool threshold
+        if (line.hasOption("extremepoolthreshold")) {
+            try {
+                config.extremepoolthreshold = Integer.parseInt(line.getOptionValue("extremepoolthreshold"));
+                if (config.extremepoolthreshold < 1) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("number of points must be a int\u22651");
+                formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
+                System.exit(1);
+            }
+        }
+
+	// map merging
+	config.mapmerge = line.hasOption("mapmerge");
 
         //no further args
         if (line.getArgs() != null && line.getArgs().length > 0) {
@@ -605,15 +689,29 @@ public class Util {
     }
 
     static class Config {
-
         boolean readCSV = false;
         boolean writeCSV = false;
-        Set<Point> source;
-        Set<Point> target;
-        Mapping mapping;
-        boolean bruteForce;
-        float threshold;
-        int granularity;
+        
+	Set<Point> source = null;
+        Set<Point> target = null;
+
+	float randomRangeBegin = -180.f;
+	float randomRangeEnd = 180.f;
+	int randomPoints = 1000000;
+	int randomDimensions = 2;
+
+        Mapping mapping = null;
+        boolean bruteForce = false;
+        float threshold = 4.f;
+        int granularity = 2;
         int numThreads = -1;
+
+	int extremepoolthreshold = 10000;
+	boolean extremepool = false;
+	boolean mapmerge = false;
+
+	boolean benchmark;
+	boolean benchmarkHeader;
     }
 }
+

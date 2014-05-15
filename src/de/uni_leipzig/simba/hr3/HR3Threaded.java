@@ -171,9 +171,9 @@ public class HR3Threaded extends HR3 {
 		long begin = 0;
 		Index source = assignCubes(sourceData);
 		Index target = assignCubes(targetData);
+		this.sourceCubes = source.cubes.keySet().size();
+		this.targetCubes = target.cubes.keySet().size();
 
-		System.out.println("|source cubes|= "+source.cubes.keySet().size());
-		System.out.println("|target cubes|= "+target.cubes.keySet().size());
 		Vector<Mapping> m = new Vector<Mapping>();
 
 		begin = System.currentTimeMillis();
@@ -203,7 +203,8 @@ public class HR3Threaded extends HR3 {
 	@Override
 	public void deduplicate(Set<Point> data, Mapping mapping) {
 		Index index = assignCubes(data);
-		System.out.println("|source cubes|= "+index.cubes.keySet().size());
+		this.sourceCubes = index.cubes.keySet().size();
+
 		for (List<Integer> cubeIndex : index.cubes.keySet()) {
 			this.pool.execute(new HR3SingleSourceRunnable(
 						cubeIndex,

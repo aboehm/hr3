@@ -21,12 +21,14 @@ public class HR3 {
     protected float threshold;
     public static Logger logger = Logger.getLogger(HR3.class.getName());
 
+    protected long sourceCubes;
+    protected long targetCubes;
+
     public HR3(float threshold, int granularity) {
         this.threshold = threshold;
         this.granularity = granularity;
-
-        System.out.println("threshold \u03B8: " + threshold);
-        System.out.println("granularity \u03B1: " + granularity);
+	this.sourceCubes = -1;
+	this.targetCubes = -1;
     }
 
     /**
@@ -169,8 +171,8 @@ public class HR3 {
     public void run(Set<Point> sourceData, Set<Point> targetData, Mapping mapping) {
         Index source = assignCubes(sourceData);
         Index target = assignCubes(targetData);
-        System.out.println("|source cubes|= " + source.cubes.keySet().size());
-        System.out.println("|target cubes|= " + target.cubes.keySet().size());
+	this.sourceCubes = source.cubes.keySet().size();
+	this.targetCubes = target.cubes.keySet().size();
 
         float d;
         for (List<Integer> cubeIndex1 : source.cubes.keySet()) {
@@ -195,7 +197,7 @@ public class HR3 {
 
     public void deduplicate(Set<Point> data, Mapping mapping) {
         Index index = assignCubes(data);
-        System.out.println("|source cubes|= " + index.cubes.keySet().size());
+	this.sourceCubes = index.cubes.keySet().size();
 
         float d;
 
@@ -274,5 +276,12 @@ public class HR3 {
             }
         }
     }
-    
+
+    public long getSourceCubes() {
+	    return this.sourceCubes;
+    }
+
+    public long getTargetCubes() {
+	    return this.sourceCubes;
+    }
 }
