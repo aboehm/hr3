@@ -54,31 +54,22 @@ public class HR3Starter {
 		} else {
 			// csv time stats
 			if (config.benchmarkHeader) {
-				System.out.println("threshold;granularity;source points;source cubes;target points;target cubes;data mode;threads;extreme pool;extreme pool threshold;map merge;random dimensions;random range begin;random range end;duration;correspondences");
+				System.out.println("threshold;granularity;source cubes;target cubes;threads;extreme pool;extreme pool threshold;map merge;duration;correspondences");
 			}
 
 			System.out.print(config.threshold+";");
 			System.out.print(config.granularity+";");
-
-			System.out.print(config.source.size()+";");
 			System.out.print(hr3.getSourceCubes()+";");
 
-			if (config.target == null) {
-				System.out.print(config.target.size()+";");
+			if (config.target == null)
 				System.out.print(hr3.getTargetCubes()+";");
-			} else  {
-				System.out.print(";;");
-			}
+			else 
+				System.out.print(";");
 
-			System.out.print(config.dataMode+";");
 			System.out.print(config.numThreads+";");
 			System.out.print((config.extremepool ? "1" : "0") + ";");
 			System.out.print(""+config.extremepoolthreshold + ";");
 			System.out.print(""+config.mapmerge + ";");
-			System.out.print(""+config.randomPoints+";");
-			System.out.print(""+config.randomDimensions+";");
-			System.out.print(""+config.randomRangeBegin+";");
-			System.out.print(""+config.randomRangeEnd+";");
 			System.out.print(""+(end - begin)+";");
 			System.out.print(m.size());
 			System.out.println();
