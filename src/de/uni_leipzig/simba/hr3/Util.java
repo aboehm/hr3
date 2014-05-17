@@ -542,9 +542,11 @@ public class Util {
         if (line.hasOption("random") || !line.hasOption("skewed") && !line.hasOption("dataset")) {
             config.source = generateData(config.randomRangeBegin, config.randomRangeEnd, config.randomDimensions, config.randomPoints);
             config.target = generateData(config.randomRangeBegin, config.randomRangeEnd, config.randomDimensions, config.randomPoints);
+	    config.dataMode = "random";
         } else if (line.hasOption("skewed")) {
             config.source = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
             config.target = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
+	    config.dataMode = "skewed";
         } else {
             String[] files = line.getOptionValues("dataset");
             if (files.length < 1 || files.length > 2) {
@@ -559,6 +561,7 @@ public class Util {
                 config.source = readPoints(files[0], config.readCSV);
                 config.target = readPoints(files[1], config.readCSV);
             }
+	    config.dataMode = "dataset";
         }
 
 
@@ -694,6 +697,8 @@ public class Util {
         
 	Set<Point> source = null;
         Set<Point> target = null;
+
+	String dataMode = "unknown";
 
 	float randomRangeBegin = -180.f;
 	float randomRangeEnd = 180.f;
