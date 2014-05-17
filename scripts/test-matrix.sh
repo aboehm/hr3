@@ -6,7 +6,7 @@ for range in 1 10 90 180 ; do
 for merge in 0 1 ; do
 
 DO_MERGE=""
-[ $merge -eq 1 ] ;; DO_MERGE="--mapmerge"
+[ $merge -eq 1 ] && DO_MERGE="--mapmerge"
 
 for threads in 1 2 4 5 6 7 8 9 10 16 32 64 128 ; do
 	java -jar build/jar/HR3.jar --benchmark \
