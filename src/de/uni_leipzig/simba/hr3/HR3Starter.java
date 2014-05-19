@@ -14,7 +14,7 @@ public class HR3Starter {
 		long begin, end;
 
 		HR3 hr3;
-		if (config.numThreads < 0) {
+		if (config.numThreads <= 0) {
 			if (!config.benchmark)
 				System.out.println("Single-threaded execution mode");
 			hr3 = new HR3(config.threshold, config.granularity);
@@ -54,7 +54,7 @@ public class HR3Starter {
 		} else {
 			// csv time stats
 			if (config.benchmarkHeader) {
-				System.out.println("threshold;granularity;source points;source cubes;target points;target cubes;data mode;threads;extreme pool;extreme pool threshold;map merge;random dimensions;random range begin;random range end;duration;correspondences");
+				System.out.println("threshold;granularity;source points;source cubes;target points;target cubes;data mode;threads;extreme pool;extreme pool threshold;map merge;random points;random dimensions;random range begin;random range end;duration;correspondences");
 			}
 
 			System.out.print(config.threshold+";");
@@ -72,9 +72,9 @@ public class HR3Starter {
 
 			System.out.print(config.dataMode+";");
 			System.out.print(config.numThreads+";");
-			System.out.print((config.extremepool ? "1" : "0") + ";");
+			System.out.print(config.extremepool+";");
 			System.out.print(""+config.extremepoolthreshold + ";");
-			System.out.print(""+config.mapmerge + ";");
+			System.out.print(config.mapmerge+";");
 			System.out.print(""+config.randomPoints+";");
 			System.out.print(""+config.randomDimensions+";");
 			System.out.print(""+config.randomRangeBegin+";");
