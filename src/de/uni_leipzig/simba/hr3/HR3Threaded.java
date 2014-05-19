@@ -4,35 +4,45 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.RejectedExecutionException;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class HR3Threaded extends HR3 {
 	public int numThreads;
+	private Lock threadAddLock;
 	private ExecutorService pool;
+
+	public boolean extremePool;
 	public boolean useMapMerge;
 	public int elementsCountForThreading;
-	public boolean extremePool;
+
 
 	public HR3Threaded(float threshold, int granularity, int numThreads)
 	{
-		super(threshold,granularity);
+		super(threshold, granularity);
 		this.numThreads = numThreads;
 		this.pool = Executors.newFixedThreadPool(this.numThreads);
 		this.useMapMerge = false;
 		this.extremePool = false;
 		this.elementsCountForThreading = 10000;
+		this.threadAddLock = new ReentrantLock(true);
 	}
 
 	public HR3Threaded(float threshold, int granularity, int numThreads, boolean useMapMerge)
 	{
-		super(threshold,granularity);
+		super(threshold, granularity);
 		this.numThreads = numThreads;
 		this.pool = Executors.newFixedThreadPool(this.numThreads);
 		this.useMapMerge = useMapMerge;
 		this.elementsCountForThreading = 10000;
 		this.extremePool = false;
+		this.threadAddLock = new ReentrantLock(true);
 	}
 
 	public HR3Threaded(float threshold, int granularity, int numThreads, boolean useMapMerge, int elementsCountForThreading, boolean extremePool)
@@ -43,6 +53,7 @@ public class HR3Threaded extends HR3 {
 		this.useMapMerge = useMapMerge;
 		this.elementsCountForThreading = elementsCountForThreading;
 		this.extremePool = extremePool;
+		this.threadAddLock = new ReentrantLock(true);
 	}
 
 	public static void main(String args[]) {
@@ -179,12 +190,12 @@ public class HR3Threaded extends HR3 {
 		begin = System.currentTimeMillis();
 
 		for (List<Integer> cubeIndex1 : source.cubes.keySet()) {
-			this.pool.execute(new HR3DualSourceRunnable(cubeIndex1,
+			executeThread(new HR3DualSourceRunnable(cubeIndex1,
 							source,
 							target,
 							this.threshold,
 							this.granularity,
-							this.pool,
+							this,
 							mapping,
 							this.useMapMerge,
 							this.elementsCountForThreading));
@@ -206,12 +217,15 @@ public class HR3Threaded extends HR3 {
 		this.sourceCubes = index.cubes.keySet().size();
 
 		for (List<Integer> cubeIndex : index.cubes.keySet()) {
-			this.pool.execute(new HR3SingleSourceRunnable(
-						cubeIndex,
-						index,
-						this.threshold,
-						this.granularity,
-						mapping));
+			executeThread(new HR3DualSourceRunnable(cubeIndex,
+							index,
+							index,
+							this.threshold,
+							this.granularity,
+							this,
+							mapping,
+							this.useMapMerge,
+							this.elementsCountForThreading));
 		}
 		try {
 			this.pool.shutdown();
@@ -220,11 +234,34 @@ public class HR3Threaded extends HR3 {
 			e.printStackTrace();
 		}
 	}
+
+	public void executeThread(Runnable thread) {
+		this.threadAddLock.lock();
+
+		while (true) {
+			try {
+				this.pool.execute(thread);
+				break;
+			} catch (RejectedExecutionException e) {
+				System.out.println("can't execute thread, retry");
+
+				try{
+					Thread.sleep(50);
+				} catch (InterruptedException e2) {
+					continue;
+				}
+
+				continue;
+			}
+		}
+		this.threadAddLock.unlock();
+	}
 }
 
 class HR3PointCompareRunnable implements Runnable {
 	private Point point;
 	private Hypercube cube;
+	private Vector<Point> elements;
 	private Mapping mapping;
 	private float threshold;
 
@@ -261,14 +298,14 @@ class HR3DualSourceRunnable implements Runnable {
 	private float threshold;
 	private int granularity;
 	private Mapping mapping;
-	private ExecutorService pool;
+	private HR3Threaded pool;
 
 	public static boolean useMapMergeStatic = false;
 	public static int elementsCountForThreadingStatic = 100000;
 	public boolean useMapMerge;
 	public int elementsCountForThreading;
 
-	public HR3DualSourceRunnable(List<Integer> cubeIndex1, Index source, Index target, float threshold, int granularity, ExecutorService pool, Mapping m) {
+	public HR3DualSourceRunnable(List<Integer> cubeIndex1, Index source, Index target, float threshold, int granularity, HR3Threaded pool, Mapping m) {
 		this.cubeIndex1 = cubeIndex1;
 		this.source = source;
 		this.target = target;
@@ -280,7 +317,7 @@ class HR3DualSourceRunnable implements Runnable {
 		this.elementsCountForThreading = elementsCountForThreadingStatic;
 	}
 
-	public HR3DualSourceRunnable(List<Integer> cubeIndex1, Index source, Index target, float threshold, int granularity, ExecutorService pool, Mapping m, boolean useMapMerge, int elementsCountForThreading) {
+	public HR3DualSourceRunnable(List<Integer> cubeIndex1, Index source, Index target, float threshold, int granularity, HR3Threaded pool, Mapping m, boolean useMapMerge, int elementsCountForThreading) {
 		this.cubeIndex1 = cubeIndex1;
 		this.source = source;
 		this.target = target;
@@ -292,20 +329,59 @@ class HR3DualSourceRunnable implements Runnable {
 		this.elementsCountForThreading = elementsCountForThreading;
 	}
 
-	public static int threadCount = 0;
+	public void run() {
+		float d; 
+		Hypercube h1 = source.getCube(cubeIndex1);
+		List<List<Integer>> cubes = HR3.getCubesToCompare(cubeIndex1,granularity);
+		Mapping usedMap = this.mapping;
 
-	public synchronized void increaseThreadCount() {
-		HR3DualSourceRunnable.threadCount++;
+		if (this.useMapMerge == true) {
+			usedMap = new MainMemoryMapping();
+		} else {
+			usedMap = this.mapping;
+		}
+		
+		for (List<Integer> cubeIndex2 : cubes) {
+			Hypercube h2 = target.getCube(cubeIndex2);
+
+			if (h2 != null) {
+				for (Point a : h1.elements) {
+					if (this.pool != null && h2.elements.size() > this.elementsCountForThreading) {
+						this.pool.executeThread(new HR3PointCompareRunnable(a, h2, this.threshold, usedMap));
+					} else {
+						for (Point b : h2.elements) {
+							d = HR3.computeDistance(a, b);
+							if (d <= threshold) {
+								usedMap.add(a.label, b.label, d);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (this.useMapMerge == true) {
+			this.mapping.merge(usedMap);
+		}
 	}
+}
 
-	public synchronized void decreaseThreadCount() {
-		HR3DualSourceRunnable.threadCount--;
+/*class HR3SingleSourceRunnable implements Runnable {
+	private List<Integer> cubeIndex1;
+	private Index index;
+	private float threshold;
+	private int granularity;
+	private Mapping mapping;
+
+	public HR3SingleSourceRunnable(List<Integer> cubeIndex1, Index index, float threshold, int granularity, Mapping m) {
+		this.cubeIndex1 = cubeIndex1;
+		this.index = index;
+		this.threshold = threshold;
+		this.granularity = granularity;
+		this.mapping = m;
 	}
-
 
 	public void run() {
-		//increaseThreadCount();
-
 		float d; 
 		Hypercube h1 = source.getCube(cubeIndex1);
 		List<List<Integer>> cubes = HR3.getCubesToCompare(cubeIndex1,granularity);
@@ -323,90 +399,42 @@ class HR3DualSourceRunnable implements Runnable {
 			Hypercube h2 = target.getCube(cubeIndex2);
 
 			if (h2 != null) {
-				for (Point a : h1.elements) {
-					if (this.pool != null && h2.elements.size() > this.elementsCountForThreading) {
-						pool.execute(new HR3PointCompareRunnable(a, h2, this.threshold, usedMap));
-					} else {
-						for (Point b : h2.elements) {
-							d = HR3.computeDistance(a, b);
-							if (d <= threshold) {
-								usedMap.add(a.label, b.label, d);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (this.useMapMerge == true) {
-			/*if (this.pool != null) {
-				try {
-					pool.shutdown();
-					pool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}*/
-
-			this.mapping.merge(usedMap);
-		}
-
-		// System.out.println("threads running "+HR3DualSourceRunnable.threadCount);
-			
-		// decreaseThreadCount();
-	}
-}
-
-class HR3SingleSourceRunnable implements Runnable {
-	private List<Integer> cubeIndex1;
-	private Index index;
-	private float threshold;
-	private int granularity;
-	private Mapping mapping;
-
-	public HR3SingleSourceRunnable(List<Integer> cubeIndex1, Index index, float threshold, int granularity, Mapping m) {
-		this.cubeIndex1 = cubeIndex1;
-		this.index = index;
-		this.threshold = threshold;
-		this.granularity = granularity;
-		this.mapping = m;
-	}
-
-
-	public void run() {
-		float d; 
-		Hypercube h1 = index.getCube(cubeIndex1);
-		List<List<Integer>> cubes = HR3.getCubesToCompare(cubeIndex1,granularity);
-		for (List<Integer> cubeIndex2 : cubes) {
-			Hypercube h2 = index.getCube(cubeIndex2);
-			// only run if the hypercube actually exists
-			if (h2 != null) {
 				int cmp= HR3.compareCubes(cubeIndex1, cubeIndex2);
-				if (cmp<0) {
+
+				if (cmp < 0) {
 					for (Point a : h1.elements) {
-						for (Point b : h2.elements) {
-							d = HR3.computeDistance(a, b);
-							if (d <= threshold) {
-								mapping.addSingleSource(a.label, b.label, d);
+						if (this.pool != null && h2.elements.size() > this.elementsCountForThreading) {
+							pool.execute(new HR3PointCompareRunnable(a, h2, this.threshold, usedMap));
+						} else {
+							for (Point b : h2.elements) {
+								d = HR3.computeDistance(a, b);
+								if (d <= threshold) {
+									usedMap.add(a.label, b.label, d);
+								}
 							}
 						}
 					}
-				}
-				else if(cmp==0)
-				{
-					List<Point> points= new ArrayList<Point>(h1.elements);
+
+				} else if (cmp == 0) {
+
+					List<Point> points = new ArrayList<Point>(h1.elements);
 					for (int i=0; i<points.size()-1; i++) {
 						Point p1= points.get(i);
 						for (int j=i+1; j<points.size(); j++) {
-							Point p2= points.get(j);
+							Point p2 = points.get(j);
 							d = HR3.computeDistance(p1, p2);
 							if (d <= threshold) {
 								mapping.addSingleSource(p1.label, p2.label, d);
 							}
 						}
 					}
+
 				}
 			}
 		}
+
+		if (this.useMapMerge == true) {
+			this.mapping.merge(usedMap);
+		}
 	}
-}
+}*/
