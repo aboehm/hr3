@@ -1,4 +1,4 @@
-    /*
+/*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
@@ -12,10 +12,13 @@ import java.util.Set;
  * @author ngonga
  */
 public class Hypercube {
-    public Set<Point> elements;
-    
-    public Hypercube()
-    {
-        elements= new HashSet<Point>();
-    }
+	public Set<Point> elements;
+
+	public Hypercube() {
+		elements = new HashSet<Point>();
+	}
+
+	public Set<Point> getElements() {
+		return this.elements;
+	}
 }
