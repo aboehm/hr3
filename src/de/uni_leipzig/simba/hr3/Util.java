@@ -504,6 +504,8 @@ public class Util {
                 formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
                 System.exit(1);
             }
+	} else {
+		config.randomDimensions = 3;
 	}
 
 	if (line.hasOption("random-points")) {
@@ -531,7 +533,7 @@ public class Util {
 
 	if (line.hasOption("random-range-end")) {
             try {
-                config.randomRangeBegin = Float.parseFloat(line.getOptionValue("random-range-end"));
+                config.randomRangeEnd = Float.parseFloat(line.getOptionValue("random-range-end"));
             } catch (NumberFormatException e) {
                 //System.err.println("dimension have to be greater than 0");
                 formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
@@ -651,15 +653,17 @@ public class Util {
         if (line.hasOption("threads")) {
             try {
                 config.numThreads = Integer.parseInt(line.getOptionValue("threads"));
-                if (config.numThreads < 1) {
+                if (config.numThreads < 0) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException e) {
-                System.err.println("number of threads must be a int\u22651");
+                System.err.println("number of threads must be a int\u22650");
                 formatter.printHelp(HR3.class.getSimpleName() + " [OPTIONS]", options);
                 System.exit(1);
             }
-        }
+        } else {
+		config.numThreads = 0;
+	}	
 
 	// extreme pool
 	config.extremepool = line.hasOption("extremepool");
@@ -709,7 +713,7 @@ public class Util {
         boolean bruteForce = false;
         float threshold = 4.f;
         int granularity = 2;
-        int numThreads = -1;
+        int numThreads = 0;
 
 	int extremepoolthreshold = 10000;
 	boolean extremepool = false;
