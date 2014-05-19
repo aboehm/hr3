@@ -158,7 +158,7 @@ public class MainMemoryMapping extends Mapping implements Serializable{
 	}
 
 	@Override
-	public synchronized void merge(Mapping m) {
+	public void merge(Mapping m) {
 		for (String a : (Set<String>)m.getMap().keySet()) {
 			HashMap m2 = (HashMap)m.getMap().get(a);
 
