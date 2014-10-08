@@ -2,3 +2,8 @@
 *.swp
 build/*.class
 build/*
+*.class
+.mtj.tmp/
+*.jar
+*.war
+*.ear
