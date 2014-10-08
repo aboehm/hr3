@@ -546,8 +546,16 @@ public class Util {
             config.target = generateData(config.randomRangeBegin, config.randomRangeEnd, config.randomDimensions, config.randomPoints);
 	    config.dataMode = "random";
         } else if (line.hasOption("skewed")) {
-            config.source = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
-            config.target = generateSkewed2DData(-180, 180, new int[]{6000, 1000, 2000, 1000});
+            config.source = generateSkewed2DData(config.randomRangeBegin, config.randomRangeEnd, new int[]{
+			    config.randomPoints*6/10,
+			    config.randomPoints/10,
+			    config.randomPoints*2/10,
+			    config.randomPoints*2/10});
+            config.target = generateSkewed2DData(config.randomRangeBegin, config.randomRangeEnd, new int[]{
+			    config.randomPoints*6/10,
+			    config.randomPoints/10,
+			    config.randomPoints*2/10,
+			    config.randomPoints*2/10});
 	    config.dataMode = "skewed";
         } else {
             String[] files = line.getOptionValues("dataset");
